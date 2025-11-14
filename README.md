@@ -208,3 +208,19 @@ Two kinds of chunks:
 - All chunk texts are encoded into dense vectors:
   - Stored as `data/embeddings.npy` (float32).
   - `data/chunk_ids.json` stores the corresponding `chunk_id` order.
+ 
+---
+
+## 4. Retrieval Approach
+
+### 4.1 Lexical Retrieval (BM25)
+
+- Library: `rank-bm25`
+- Index built over **chunk texts** (emails + attachment pages).
+- For a tokenized query `tokens`, BM25 scores are computed as:
+
+```python
+bm25_scores = bm25.get_scores(tokens)  # 1 score per chunk
+```
+
+
