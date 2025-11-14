@@ -402,3 +402,73 @@ In the Gradio app, a “Show Timeline” button:
 - Looks up the current session’s thread_id.
 - Calls the timeline helper.
 - Displays this text as a quick per-thread summary.
+
+---
+
+## 10. Setup & Running
+
+This section explains how to run the project:
+
+- Locally on your machine (recommended for development).
+- Using Docker + docker-compose (for reproducible runs).
+
+> Note: All data artifacts (`chunks.jsonl`, `embeddings.npy`, `fake_attachments.jsonl`, etc.) are already included in the repo, so you **do not** need to re-run the ingest pipeline unless you want to change the data.
+
+### 10.1 Prerequisites
+
+- **Python**: 3.9+ (3.10/3.11 also fine)
+- **Git**
+- (Optional, but recommended) **virtualenv / venv**
+- For Docker mode:
+  - **Docker** and **docker-compose** installed
+
+### 10.2 Clone the Repository
+```bash
+git clone https://github.com/raviix46/Email-Rag-Prototype-Assignment.git
+cd Email-Rag-Prototype-Assignment
+```
+
+### 10.3 Create and Activate Virtual Environment (Local Mode)
+
+Create a virtual environment so this project’s dependencies don’t clash with global Python packages.
+```bash
+# Create venv
+python -m venv .venv
+
+# Activate (Linux / macOS)
+source .venv/bin/activate
+
+# Activate (Windows PowerShell)
+# .venv\Scripts\Activate.ps1
+```
+
+### 10.4 Install Dependencies
+
+Install all required Python packages from requirements.txt:
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+This will install:
+- gradio – UI
+- fastapi, uvicorn, pydantic – API backend
+- rank-bm25 – BM25 lexical retrieval
+- sentence-transformers – MiniLM embeddings
+- numpy and other supporting libraries
+
+### 10.5 Data Artifacts (Already Provided)
+
+The repo already includes:
+	•	data/messages.json          – normalized emails
+	•	data/threads.json           – per-thread metadata
+	•	data/chunks.jsonl           – email + attachment chunks
+	•	data/fake_attachments.jsonl – text for synthetic PDFs
+	•	data/embeddings.npy         – dense embeddings for all chunks
+	•	data/chunk_ids.json         – order of chunk_id for embeddings
+	•	data/attachments/           – the PDF files
+
+You only need to re-run the data scripts if you:
+	•	Add new attachments.
+	•	Change fake_attachments.jsonl.
+	•	Want to rebuild the index from scratch.
