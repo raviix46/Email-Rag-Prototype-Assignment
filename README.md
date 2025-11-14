@@ -218,9 +218,16 @@ Two kinds of chunks:
 - Library: `rank-bm25`
 - Index built over **chunk texts** (emails + attachment pages).
 - For a tokenized query `tokens`, BM25 scores are computed as:
-
 ```python
 bm25_scores = bm25.get_scores(tokens)  # 1 score per chunk
+```
+
+- Scores are normalized to [0, 1] by dividing by the maximum:
+ ```python
+if bm25_scores.max() > 0:
+    bm25_norm = bm25_scores / bm25_scores.max()
+else:
+    bm25_norm = bm25_scores  # remains all zeros if everything is zero
 ```
 
 
