@@ -60,6 +60,8 @@ Email-Rag-Prototype-Assignment/
         └── NGI_final_approval.pdf  # Final approval PDF (2 pages)
 ```
 
+---
+
 ## 2. High-Level Architecture
 
 ### 2.1 Components
@@ -116,3 +118,93 @@ Email-Rag-Prototype-Assignment/
      - rewritten query
      - retrieved chunk IDs + scores
      - answer + citations
+
+---
+
+## 3. Dataset and Indexing
+
+### 3.1 Source Dataset
+
+- Based on the public Enron email corpus.
+- For this assignment, a small subset was created locally:
+  - Load first ~5000 rows of the full CSV.
+  - Filter to threads with 3–25 emails.
+- Resulting subset:
+  - ~207 emails
+  - grouped into ~15 threads
+- This subset is stored as:
+  - `data/emails_subset_with_ids.csv`
+
+### 3.2 Normalization
+
+The ingest pipeline (run once, locally) derived:
+
+- `data/messages.json` – one record per email:
+
+  {
+    "message_id": "M-000207",
+    "thread_id": "T-0002",
+    "date": "2001-07-26 11:56:00",
+    "from": "phillip.allen@enron.com",
+    "to": ["dexter@intelligencepress.com"],
+    "cc": ["..."],
+    "subject": "NGI access to eol",
+    "body_text": "Dexter, Hopefully Griff Gray has sent you the information ..."
+  }
+
+- `data/threads.json` – one record per thread:
+
+  {
+    "thread_id": "T-0002",
+    "subject": "NGI access to eol",
+    "messages": ["M-000119", "M-000120", "...", "M-000207"],
+    "first_date": "...",
+    "last_date": "...",
+    "participants": [
+      "phillip.allen@enron.com",
+      "dexter@intelligencepress.com",
+      "..."
+    ]
+  }
+
+### 3.3 Chunking
+
+The main index file is `data/chunks.jsonl` (JSONL: one JSON object per line).
+
+Two kinds of chunks:
+
+1. Email chunks (per message)
+
+   {
+     "chunk_id": "M-000207",
+     "thread_id": "T-0002",
+     "message_id": "M-000207",
+     "source": "email",
+     "text": "Dexter, Hopefully Griff Gray has sent you the information on your id and password by now..."
+   }
+
+2. Attachment chunks (per PDF page)
+
+   The NGI thread has two synthetic PDFs:
+
+   - `NGI_draft_terms.pdf` – 1 page, linked to `M-000206`
+   - `NGI_final_approval.pdf` – 2 pages, linked to `M-000207`
+
+   Text and metadata are defined in `data/fake_attachments.jsonl` and merged into `chunks.jsonl` via `data/add_fake_attachments.py`, resulting in entries like:
+
+   {
+     "chunk_id": "att_M-000207_p2",
+     "thread_id": "T-0002",
+     "message_id": "M-000207",
+     "page_no": 2,
+     "source": "attachment",
+     "filename": "NGI_final_approval.pdf",
+     "text": "DETAILS – The guest ID for Dexter Steis is valid through January of the following year..."
+   }
+
+### 3.4 Embeddings
+
+- Model: `sentence-transformers/all-MiniLM-L6-v2`
+- All chunk texts are encoded into dense vectors:
+  - Stored as `data/embeddings.npy` (float32).
+  - `data/chunk_ids.json` stores the corresponding `chunk_id` order.
