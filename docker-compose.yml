@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  indexer:
+    build: .
+    command: ["python", "ingest.py"]
+    volumes:
+      - .:/app
+    working_dir: /app
+    # This runs once to (re)build subset + chunks + embeddings
+
+  api:
+    build: .
+    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on:
+      - indexer
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    working_dir: /app
+
+  ui:
+    build: .
+    command: ["python", "app.py"]
+    depends_on:
+      - indexer
+    ports:
+      - "7860:7860"
+    volumes:
+      - .:/app
+    working_dir: /app

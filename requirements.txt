@@ -1,0 +1,7 @@
+gradio>=4.0.0
+rank-bm25
+sentence-transformers
+numpy
+fastapi
+uvicorn
+pydantic
