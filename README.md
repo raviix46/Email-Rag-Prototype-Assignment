@@ -140,7 +140,7 @@ Email-Rag-Prototype-Assignment/
 The ingest pipeline (run once, locally) derived:
 
 - `data/messages.json` – one record per email:
-```
+```json
   {
     "message_id": "M-000207",
     "thread_id": "T-0002",
@@ -153,7 +153,7 @@ The ingest pipeline (run once, locally) derived:
   }
 ```
 - `data/threads.json` – one record per thread:
-```
+```json
   {
     "thread_id": "T-0002",
     "subject": "NGI access to eol",
@@ -174,7 +174,7 @@ The main index file is `data/chunks.jsonl` (JSONL: one JSON object per line).
 Two kinds of chunks:
 
 1. Email chunks (per message)
-```
+```json
    {
      "chunk_id": "M-000207",
      "thread_id": "T-0002",
@@ -191,7 +191,7 @@ Two kinds of chunks:
    - `NGI_final_approval.pdf` – 2 pages, linked to `M-000207`
 
    Text and metadata are defined in `data/fake_attachments.jsonl` and merged into `chunks.jsonl` via `data/add_fake_attachments.py`, resulting in entries like:
-```
+```json
    {
      "chunk_id": "att_M-000207_p2",
      "thread_id": "T-0002",
