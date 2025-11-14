@@ -293,59 +293,37 @@ this filter is skipped, and retrieval covers all chunks across all threads.
 ### 5.1 Sessions
 
 - Sessions are managed in `email_rag/rag_sessions.py`.
-- Each session is bound to:
-  - A specific `thread_id`.
-  - A small rolling chat history (`recent_turns`).
-  - A simple `entity_memory`.
+- Each session is always tied to:
+  - a specific `thread_id`
+  - a small rolling chat history (`recent_turns`)
+  - a lightweight `entity_memory` (people, files, dates, amounts)
 
-Example session record (conceptual):
+Conceptually, a session looks like:
+
 ```json
 {
   "session_id": "a5b94f4a-8e4e-4b7e-9a8d-0c7c9a4f4d01",
   "thread_id": "T-0002",
   "recent_turns": [
-    {
-      "user": "What did the final approval attachment say about the validity period?",
-      "answer": "The final approval states that Dexter's guest ID is valid through January of the following year. [msg: M-000207, page: 2]"
-    }
+    { "user": "...", "answer": "..." }
   ],
   "entity_memory": {
-    "people": [
-      "phillip.allen@enron.com",
-      "dexter@intelligencepress.com"
-    ],
-    "files": [
-      "NGI_final_approval.pdf"
-    ],
+    "people": ["phillip.allen@enron.com", "dexter@intelligencepress.com"],
+    "files": ["NGI_final_approval.pdf"],
     "amounts": [],
-    "dates": [
-      "01/26/2001"
-    ]
+    "dates": ["01/26/2001"]
   }
 }
 ```
-- Core functions:
-```python
-from email_rag.rag_sessions import (
-    start_session,
-    get_session,
-    reset_session,
-    update_entity_memory,
-)
+At a high level:
+- start_session(thread_id) → creates a new session.
+- get_session(session_id) → returns the in-memory record.
+- reset_session(session_id) → clears history + entity memory for that session.
 
-# start a new session bound to a thread
-session_id = start_session("T-0002")
-
-# lookup session
-session = get_session(session_id)
-
-# reset session memory
-reset_session(session_id)
-
-# update entity memory
-update_entity_memory(session_id, {"files": ["NGI_final_approval.pdf"]})
-```
-
+These functions are used by both:
+	•	the Gradio UI (app.py)
+	•	the FastAPI API (api.py)
+  
 ### 5.2 Entity Memory
 - Implemented in rag_retrieval.extract_entities_for_turn(user_text, retrieved).
 - Uses regex patterns to capture:
