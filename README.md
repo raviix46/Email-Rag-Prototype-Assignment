@@ -405,7 +405,7 @@ In the Gradio app, a “Show Timeline” button:
 
 ---
 
-## 10. Setup & Running
+## 8. Setup & Running
 
 This section explains how to run the project:
 
@@ -414,7 +414,7 @@ This section explains how to run the project:
 
 > Note: All data artifacts (`chunks.jsonl`, `embeddings.npy`, `fake_attachments.jsonl`, etc.) are already included in the repo, so you **do not** need to re-run the ingest pipeline unless you want to change the data.
 
-### 10.1 Prerequisites
+### 8.1 Prerequisites
 
 - **Python**: 3.9+ (3.10/3.11 also fine)
 - **Git**
@@ -422,13 +422,13 @@ This section explains how to run the project:
 - For Docker mode:
   - **Docker** and **docker-compose** installed
 
-### 10.2 Clone the Repository
+### 8.2 Clone the Repository
 ```bash
 git clone https://github.com/raviix46/Email-Rag-Prototype-Assignment.git
 cd Email-Rag-Prototype-Assignment
 ```
 
-### 10.3 Create and Activate Virtual Environment (Local Mode)
+### 8.3 Create and Activate Virtual Environment (Local Mode)
 
 Create a virtual environment so this project’s dependencies don’t clash with global Python packages.
 ```bash
@@ -442,7 +442,7 @@ source .venv/bin/activate
 # .venv\Scripts\Activate.ps1
 ```
 
-### 10.4 Install Dependencies
+### 8.4 Install Dependencies
 
 Install all required Python packages from requirements.txt:
 ```bash
@@ -457,9 +457,10 @@ This will install:
 - sentence-transformers – MiniLM embeddings
 - numpy and other supporting libraries
 
-### 10.5 Data Artifacts (Already Provided)
+### 8.5 Data Artifacts (Already Provided)
 
 The repo already includes:
+```text
 	•	data/messages.json          – normalized emails
 	•	data/threads.json           – per-thread metadata
 	•	data/chunks.jsonl           – email + attachment chunks
@@ -467,8 +468,92 @@ The repo already includes:
 	•	data/embeddings.npy         – dense embeddings for all chunks
 	•	data/chunk_ids.json         – order of chunk_id for embeddings
 	•	data/attachments/           – the PDF files
+```
 
 You only need to re-run the data scripts if you:
 	•	Add new attachments.
 	•	Change fake_attachments.jsonl.
 	•	Want to rebuild the index from scratch.
+
+In that case:
+```bash
+# 1. Merge fake attachments into chunks.jsonl (idempotent)
+python data/add_fake_attachments.py
+
+# 2. Recompute embeddings for all chunks
+python data/build_embeddings.py
+```
+
+### 8.6 Running the Gradio UI (Local)
+
+The Gradio app is defined in app.py. It uses the same RAG logic as the API internally.
+
+Start the UI:
+```bash
+python app.py
+```
+
+You should see output similar to:
+```text
+Running on local URL:  http://127.0.0.1:7860
+```
+
+### 8.7 Running the FastAPI Backend (Local)
+
+The API server is defined in api.py using FastAPI.
+
+Start the API:
+```bash
+uvicorn api:app --host 0.0.0.0 --port 8000
+```
+
+Now the API is available at:
+```text
+[python app.py](http://127.0.0.1:8000)
+```
+
+Optionally visit the interactive docs:
+- Swagger UI: http://127.0.0.1:8000/docs
+- ReDoc: http://127.0.0.1:8000/redoc
+
+---
+
+## 9. Design Choices, Limitations & Performance
+
+### 9.1 Design Choices
+
+- **Hybrid retrieval**  
+  - Combines BM25 (lexical) + MiniLM embeddings (semantic) for more robust ranking.
+- **Thread-scoped by default**  
+  - Keeps answers focused on the **active email thread**.  
+  - Global search is used **only when explicitly requested** (`search_outside_thread = true`).
+- **Lightweight memory**  
+  - Uses **regex-based entity memory** (people, files, amounts, dates) instead of heavy LLM-based reasoning.
+- **Transparent artifacts**  
+  - Core index files are all plain-text / inspectable:
+    - `data/chunks.jsonl`
+    - `data/embeddings.npy`
+    - `data/fake_attachments.jsonl`
+
+### 9.2 Limitations
+
+- Uses a **small, assignment-scale subset** of Enron, not tuned for full production scale.
+- No **cross-encoder / reranker** layer yet (ranking is purely BM25 + dense similarity).
+- **Entity extraction** is simple and may miss complex / non-standard patterns.
+- **Attachments** are synthetic (AI-written) PDFs added to simulate realistic approval/draft flows.
+
+### 9.3 Performance
+
+- **Data size**: ~200+ chunks (emails + attachment pages).
+- **Embedding model**: `sentence-transformers/all-MiniLM-L6-v2`
+- **Retrieval**: `top_k = 8` chunks per query (as per assignment guidance).
+
+On a typical laptop (warm cache):
+
+- Lexical-only (BM25): **well under 1–2 seconds**.
+- Hybrid (BM25 + embeddings): **roughly 1–3 seconds**.
+
+This fits the assignment guideline:
+
+- `p95 ≤ 2.5s` for lexical-only.
+- `p95 ≤ 3.0s` for hybrid retrieval at `top_k ≤ 8`.
