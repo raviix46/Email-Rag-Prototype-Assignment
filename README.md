@@ -349,3 +349,56 @@ These functions are used by both:
   ]
 }
 ```
+
+---
+
+## 6. Answering, Grounding & Citations
+
+- Answering logic lives in `email_rag/rag_retrieval.py` → `build_answer(...)`.
+- Flow:
+  1. Check retrieved chunks:
+     - If nothing relevant → return a **polite “no clear answer”** instead of hallucinating.
+  2. Otherwise:
+     - Echo the user question.
+     - List **relevant snippets** as bullet points.
+     - Add **inline citations**:
+       - Email body → `[msg: M-000207]`
+       - Attachment page → `[msg: M-000207, page: 2]`.
+
+Example answer shape:
+
+```markdown
+**Question:** When was that approval sent?
+
+**Relevant information:**
+- Dexter, Hopefully Griff Gray has sent you the information on your id and password by now. It should be good through January. [msg: M-000207]
+- DETAILS – The guest ID for Dexter Steis is valid through January of the following year. [msg: M-000207, page: 2]
+```
+
+Along with the markdown answer, the function returns a structured list of citations like:
+```json
+[
+  { "message_id": "M-000207", "page_no": null, "chunk_id": "M-000207" },
+  { "message_id": "M-000207", "page_no": 2,    "chunk_id": "att_M-000207_p2" }
+]
+```
+
+---
+
+## 7. Timeline View
+
+- Implemented in email_rag/rag_timeline.py.
+- Uses threads.json + messages.json to show who said what, when within a thread.
+
+Example output:
+```text
+Timeline for thread T-0002
+2001-01-26 01:55 — phillip.allen@enron.com — NGI access to eol [msg: M-000119]
+2001-01-26 01:57 — phillip.allen@enron.com — Re: NGI access to eol [msg: M-000123]
+2001-03-26 09:05 — phillip.allen@enron.com — Re: NGI access to eol [msg: M-000146]
+2001-07-26 11:56 — phillip.allen@enron.com — RE: NGI access to eol [msg: M-000207]
+```
+In the Gradio app, a “Show Timeline” button:
+- Looks up the current session’s thread_id.
+- Calls the timeline helper.
+- Displays this text as a quick per-thread summary.
