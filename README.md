@@ -230,4 +230,58 @@ else:
     bm25_norm = bm25_scores  # remains all zeros if everything is zero
 ```
 
+### 4.2 Semantic Retrieval (Embeddings)
 
+- The query is rewritten and encoded using the same sentence-transformer model:
+```python
+q_vec = sem_model.encode([rewrite], normalize_embeddings=True)[0]  # shape (D,)
+sem_scores = embeddings @ q_vec  # cosine similarity (one score per chunk)
+sem_norm = (sem_scores + 1.0) / 2.0  # map [-1, 1] -> [0, 1]
+```
+
+- Here:
+  - embeddings is the (num_chunks, D) matrix loaded from data/embeddings.npy.
+  - q_vec is the query embedding.
+
+### 4.3 Hybrid Scoring
+
+- Combined score for each chunk:
+```python
+combined = 0.6 * bm25_norm + 0.4 * sem_norm
+```
+
+- Then:
+```python
+# sort indices by combined score descending
+order = np.argsort(-combined)
+
+top_k = 8  # default number of chunks to return
+top_indices = indices[order[:top_k]]
+
+# later used to pick top chunks from `chunks`
+top_chunks = [chunks[i] for i in top_indices]
+```
+
+- Steps:
+  - Sort chunks by combined score in descending order.
+  - Take top k chunks (default top_k = 8).
+  - Optionally filter by thread (see below).
+ 
+### 4.4 Thread-Scoped vs Global Search
+
+- Each session is bound to a specific thread_id.
+- By default, retrieval only considers chunks within that thread:
+```python
+thread_id = session["thread_id"]
+N = len(chunks)
+indices = np.arange(N)
+
+if not search_outside_thread:
+    mask = np.array([chunks[i]["thread_id"] == thread_id for i in range(N)])
+    indices = indices[mask]
+    bm25_norm = bm25_norm[mask]
+    sem_norm = sem_norm[mask]
+```
+
+- If search_outside_thread = True (via UI checkbox or API query parameter),
+this filter is skipped, and retrieval covers all chunks across all threads.
